@@ -15,24 +15,6 @@ def get_sources(files):
         sources.add(source)
     return list(sources)
 
-# essentially, return period = 1 / exceedance probability (IFF i have impact data)
-def weibull_method(data):
-    if data is None or data.empty:
-        print("No data provided for return period calculation.")
-        return None
-    data["monty:impact_detail"] = data["monty:impact_detail"].apply(ast.literal_eval)
-    data["magnitude"] = data["monty:impact_detail"].apply(lambda x: x.get("value", 0))
-    data = data.sort_values(by="magnitude", ascending=False).reset_index(drop=True)
-
-    # This right now is not too great in case there are multiple instances in a year.
-    # Alternative approach could be concatenating the magnitudes via the year and the disaster type
-    # or we can use the annual maxima events to calculate the return period
-    # or a hybrid approach where we concatenate closely occurring events and then use the annual maxima
-    data["exceedance_probability"] = (data.index + 1) / (len(data) + 1)
-    data["return_period"] = 1 / data["exceedance_probability"]
-
-    return None
-
 def calc_min(a, b):
     return 1 if int(a / b) == 0 else int(a / b)
 
@@ -156,11 +138,6 @@ def data_cleaning(df, source):
             "tag", "impact_type", "impact_quantity", "monty:corr_id"
         ]]
 
-        # sum_col = "impact_quantity"
-        # agg_dict = {col: "first" for col in table.columns if col != sum_col}
-        # agg_dict[sum_col] = "sum"
-
-        # out = table.groupby("datetime", as_index=False).agg(agg_dict)
 
         if table.empty:
             print(f"  Skipping {name}: aggregation produced empty table.")
@@ -183,8 +160,6 @@ def period_restriction(partially_cleaned_df):
     years = partially_cleaned_df["year"].nunique()
 
 
-# performs concatenation of disasters occuring on the same day (in the same country, and same type of disaster) => could probably extend via concatenating those
-# of the related disasters (i.e. flood and storm)
 def disaster_concatenation(table):
     sum_col = "impact_quantity"
     agg_dict = {col: "first" for col in table.columns if col != sum_col}
