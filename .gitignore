@@ -1,4 +1,7 @@
-*/
+dataset/
+iteration_one/
+iteration_two/
+transformed_dataset/
 *.csv
 result_calc.py
 trial.py
