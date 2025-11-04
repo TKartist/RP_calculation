@@ -115,8 +115,3 @@ Derived summary table with long-term probabilistic estimates.
 - Query individual disaster events and their impact details.
 - Generate return period summaries for disaster risk analysis.
 - Use `return_periods` to estimate expected impacts for **1-in-1, 1-in-2, 1-in-5, 1-in-10, and 1-in-20 year disasters**.
-
-
-
-
-
