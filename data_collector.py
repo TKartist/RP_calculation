@@ -147,5 +147,6 @@ def get_items(collection_list):
 
     return events_df
         
-collections = get_collections()
-items = get_items(collections['id'].tolist())
+# collections = get_collections()
+# items = get_items(collections['id'].tolist())
+load_isos()
