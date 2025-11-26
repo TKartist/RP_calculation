@@ -67,10 +67,15 @@ def concat_by_source():
                 continue
         if df_list:
             combined_df = pd.concat(df_list, ignore_index=True)
-            combined_df = data_cleaning(combined_df, source)
+            # combined_df = data_cleaning(combined_df, source)
         else:
             print(f"No valid dataframes to concatenate for source: {source}")
     
+
+
+def find_keys(combined_df, source):
+    print("x")
+
 
 
 def data_cleaning(df, source):
