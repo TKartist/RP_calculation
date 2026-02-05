@@ -5,3 +5,5 @@ transformed_dataset/
 *.csv
 result_calc.py
 trial.py
+.env
+__pycache__/

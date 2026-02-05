@@ -3,8 +3,26 @@ import os
 import ast
 
 
+disaster_types = pd.read_csv("glide_emdat_undrr_mapping.csv")
+disaster_types["Description"] = disaster_types["Description"].apply(lambda x: x.replace("/", "-") if isinstance(x, str) else x)
+glide = dict(zip(disaster_types["GLIDE"], disaster_types["Description"]))
+emdat = dict(zip(disaster_types["EM-DAT"], disaster_types["Description"]))
+undrr = dict(zip(disaster_types["UNDRR"], disaster_types["Description"]))
+disasters = set()
+
+def map_disaster_type(code):
+    if code in glide:
+        return glide[code]
+    elif code in emdat:
+        return emdat[code]
+    elif code in undrr:
+        return undrr[code]
+    else:
+        disasters.add(code)
+        return code
+
 def file_list():
-    files = [f for f in os.listdir('dataset') if f.endswith('.csv')]
+    files = [f for f in os.listdir('dataset_clean') if f.endswith('.csv')]
     return files
 
 
@@ -58,7 +76,7 @@ def concat_by_source():
         source_files = [f for f in files if f.startswith(source)]
         df_list = []
         for file in source_files:
-            file_path = os.path.join('dataset', file)
+            file_path = os.path.join('dataset_clean', file)
             try:
                 df = pd.read_csv(file_path)
                 df_list.append(df)
@@ -67,15 +85,25 @@ def concat_by_source():
                 continue
         if df_list:
             combined_df = pd.concat(df_list, ignore_index=True)
-            # combined_df = data_cleaning(combined_df, source)
+            data_cleaning(combined_df, source)
         else:
             print(f"No valid dataframes to concatenate for source: {source}")
-    
 
 
-def find_keys(combined_df, source):
-    print("x")
+def correct_type(x):
+    if (x.startswith("adult") or x.startswith("children") or x.startswith("men") or x.startswith("women")):
+        return "people"
+    return x
 
+
+def category_mapping(x):
+    if x.startswith("adult") or x.startswith("children"):
+        return "people_disag"
+    elif x.startswith("houses") or x.startswith("buildings"):
+        return "structures"
+    elif x.startswith("livestock") or x.startswith("animals") or x.startswith("cattle"):
+        return "animals"
+    return x
 
 
 def data_cleaning(df, source):
@@ -96,11 +124,8 @@ def data_cleaning(df, source):
                    (x[-1] if isinstance(x, list) and x else "unknown")) if pd.notnull(x) else "unknown"
     )
 
-    def get_hazard(x):
-        parts = str(x).split("-")
-        return parts[4] if len(parts) > 4 else "unknown"
-    df["hazard_code"] = df["monty:corr_id"].apply(get_hazard)
-
+    df["hazard_code"] = df["monty:hazard_codes"].apply(lambda x: ast.literal_eval(x)[-1] if isinstance(x, str) and x.strip().startswith("[") else (x[-1] if isinstance(x, list) and x else "unknown") if pd.notnull(x) else "unknown")
+    df["hazard_code"] = df["hazard_code"].apply(lambda x : map_disaster_type(x))
     def parse_detail(x):
         if pd.isna(x):
             return {}
@@ -114,14 +139,14 @@ def data_cleaning(df, source):
         return {}
 
     detail = df["monty:impact_detail"].apply(parse_detail)
-    df["impact_type"] = detail.apply(lambda d: d.get("type", "unknown"))
+    df["impact_type"] = detail.apply(lambda d: d.get("type", "unknown") + "_" + category_mapping(d.get("category", "")))
     df["impact_quantity"] = pd.to_numeric(detail.apply(lambda d: d.get("value", None)), errors="coerce")
 
     df["tag"] = df["monty:hazard_codes"].apply(
         lambda x: (ast.literal_eval(x)[-1] if isinstance(x, str) and x.strip().startswith("[") else
                    (x[-1] if isinstance(x, list) and x else "unknown")) if pd.notnull(x) else "unknown"
     )
-
+    '''Sum up impact quantities for repeating impact_types on same correlation ID and datetime'''
     dfs = {
         f"{c1}_{c2}_{c3}": g
         for (c1, c2, c3), g in df.groupby(
@@ -178,3 +203,6 @@ def disaster_concatenation(table):
 
 
 concat_by_source()
+print("Unknown disaster codes encountered")
+for d in sorted(disasters):
+    print(d)
