@@ -1,10 +1,8 @@
 import pandas as pd
 import requests
-import gc
 from dotenv import load_dotenv
 import os
 from pystac_client import Client
-import json
 
 
 
